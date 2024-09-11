@@ -2,6 +2,10 @@ import lasio
 import obspy
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cbook as cbook
+import matplotlib.image as image
+from PIL import Image as PILImage
+import re
 
 def convert_las_to_jpg(las_file, output_jpg):
     las = lasio.read(las_file)
@@ -135,7 +139,7 @@ def convert_las_to_jpg(las_file, output_jpg):
         ax.set_ylim(depth.max(), depth.min())
 
     log_name = las.well["WELL"].value if "WELL" in las.well else "Unknown Log"
-    plt.suptitle(log_name, fontsize=12, fontweight='bold', ha='center')
+    plt.suptitle(f"Bapex - {log_name}", fontsize=12, fontweight='bold', ha='center')
 
     plt.figtext(0.5, 0.01, "Triple Combo", ha="center", fontsize=14, fontweight='bold')
 
@@ -145,10 +149,24 @@ def convert_las_to_jpg(las_file, output_jpg):
     # Add the available keys (log curves with units) below the plot
     plt.figtext(0.5, -0.07, f"Available Curves: {available_keys_with_units}", ha="center", fontsize=10)
 
-    plt.tight_layout(rect=[0, 0.03, 1, 1])  # Adjust the rect to make space for the text
+
+    with cbook.get_sample_data('BAPEX.png') as file:
+        pil_image = PILImage.open(file)
+        # Resize image: Change the size as needed
+        new_size = (400, 200)  # Width x Height
+        pil_image = pil_image.resize(new_size, PILImage.ANTIALIAS)
+        im = np.array(pil_image)
+    # Calculate watermark position (center of the figure)
+    fig_width, fig_height = fig.get_size_inches() * fig.get_dpi()
+    im_width, im_height = im.shape[1], im.shape[0]
+    x = (fig_width - im_width) / 2
+    y = (fig_height - im_height) / 2
+
+    # Add the watermark image
+    fig.figimage(im, x, y, zorder=3, alpha=0.5)
+
     plt.savefig(output_jpg, format='jpeg', bbox_inches='tight')
     plt.close(fig)
-
 
 def convert_sgy_to_jpg(sgy_file, output_jpg, sampling_interval=0.004):
     stream = obspy.read(sgy_file)
@@ -161,5 +179,32 @@ def convert_sgy_to_jpg(sgy_file, output_jpg, sampling_interval=0.004):
     ax.set_title(f'SEG-Y Data: {sgy_file}')
     ax.set_xlabel('Trace Number')
     ax.set_ylabel('Time (s)')
+
+    lines = stream.stats.textual_file_header.decode('ascii').split('\n')
+    company = re.search(r'COMPANY\s+(\w+)', lines[0])
+    line_info = re.search(r'LINE\s+:\s+(\S+)', lines[0])
+    area = re.search(r'AREA\s+:\s+(\S+)', lines[0])
+
+    # Format extracted information
+    company = company.group(1) if company else "Unknown"
+    line_info = line_info.group(1) if line_info else "Unknown"
+    area = area.group(1) if area else "Unknown"
+
+    plt.suptitle(f"{company} - {area} - {line_info}", fontsize=12, fontweight='bold', ha='center')
+
+    with cbook.get_sample_data('BAPEX.png') as file:
+        pil_image = PILImage.open(file)
+        # Resize image: Change the size as needed
+        new_size = (1500, 900)  # Width x Height
+        pil_image = pil_image.resize(new_size, PILImage.ANTIALIAS)
+        im = np.array(pil_image)
+    # Calculate watermark position (center of the figure)
+    fig_width, fig_height = fig.get_size_inches() * fig.get_dpi()
+    im_width, im_height = im.shape[1], im.shape[0]
+    x = (fig_width - im_width) / 2
+    y = (fig_height - im_height) / 2
+
+    fig.figimage(im, 1500, 500, zorder=3, alpha=0.3)
+
     plt.savefig(output_jpg, format='jpg', dpi=300, bbox_inches='tight')
     plt.close()
