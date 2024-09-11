@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>File Converters</h2>
+    <div class="col-md-8">
+        <div class="col-md-8">
+            <a href="{% url 'las_converter' %}" class="btn btn-primary">Convert LAS to JPG</a>
+        </div>
+    </br>
+        <div class="col-md-6">
+            <a href="{% url 'sgy_converter' %}" class="btn btn-primary">Convert SEG-Y to JPG</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
