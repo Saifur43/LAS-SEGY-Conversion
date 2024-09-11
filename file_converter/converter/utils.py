@@ -134,14 +134,16 @@ def convert_las_to_jpg(las_file, output_jpg):
     for ax in axes:
         ax.set_ylim(depth.max(), depth.min())
 
-    # Add "Triple Combo" text below the plot
-    plt.figtext(0.5, 0.01, "Triple Combo", ha="center", fontsize=12, fontweight='bold')
+    log_name = las.well["WELL"].value if "WELL" in las.well else "Unknown Log"
+    plt.suptitle(log_name, fontsize=12, fontweight='bold', ha='center')
+
+    plt.figtext(0.5, 0.01, "Triple Combo", ha="center", fontsize=14, fontweight='bold')
 
     # Prepare available keys and units string
     plt.figtext(0.5, -0.05, f"This is a preview of the LAS file with some basic logs. Actual LAS files contain a wider range of logs.", ha="center", fontsize=10)
     available_keys_with_units = ', '.join([f"{key}" if unit else key for key, unit in available_keys])
     # Add the available keys (log curves with units) below the plot
-    plt.figtext(0.5, -0.07, f"Available Logs: {available_keys_with_units}", ha="center", fontsize=10)
+    plt.figtext(0.5, -0.07, f"Available Curves: {available_keys_with_units}", ha="center", fontsize=10)
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])  # Adjust the rect to make space for the text
     plt.savefig(output_jpg, format='jpeg', bbox_inches='tight')
