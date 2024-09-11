@@ -3,15 +3,11 @@ import obspy
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-import lasio
-import matplotlib.pyplot as plt
-
 def convert_las_to_jpg(las_file, output_jpg):
     las = lasio.read(las_file)
     
-    # Get all available keys (log curves) in the LAS file
-    available_keys = list(las.keys())
+    # Get all available keys (log curves) and their units
+    available_keys = [(curve.mnemonic, curve.unit) for curve in las.curves]
 
     # Define the available logs and the corresponding axis titles
     available_logs = []
@@ -51,12 +47,16 @@ def convert_las_to_jpg(las_file, output_jpg):
             ax_sp = ax_gr.twiny()
             
             if 'GR' in las.keys():
+                unit_gr = next((curve.unit for curve in las.curves if curve.mnemonic == 'GR'), '')
+                xlabel_gr = f'GR ({unit_gr})' if unit_gr else 'GR'
                 ax_gr.plot(las['GR'], depth, 'g', label='GR')
-                ax_gr.set_xlabel('GR')
+                ax_gr.set_xlabel(xlabel_gr)
                 ax_gr.legend(loc='upper left')
             if 'SP' in las.keys():
+                unit_sp = next((curve.unit for curve in las.curves if curve.mnemonic == 'SP'), '')
+                xlabel_sp = f'SP ({unit_sp})' if unit_sp else 'SP'
                 ax_sp.plot(las['SP'], depth, 'b', label='SP')
-                ax_sp.set_xlabel('SP')
+                ax_sp.set_xlabel(xlabel_sp)
                 ax_sp.legend(loc='upper right')
 
         elif log_type == 'MSFL_LLS_LLD':
@@ -69,9 +69,12 @@ def convert_las_to_jpg(las_file, output_jpg):
             if 'LLD' in las.keys():
                 ax_msfl_lls_lld.semilogx(las['LLD'], depth, label='LLD')
             
-            ax_msfl_lls_lld.set_xlabel('MSFL, LLS, LLD')
+            xlabel = ', '.join([f'{log} ({unit})' if unit else log for log, unit in [('MSFL', next((curve.unit for curve in las.curves if curve.mnemonic == 'MSFL'), '')),
+                                                                                     ('LLS', next((curve.unit for curve in las.curves if curve.mnemonic == 'LLS'), '')),
+                                                                                     ('LLD', next((curve.unit for curve in las.curves if curve.mnemonic == 'LLD'), ''))] if log in las.keys()])
+            ax_msfl_lls_lld.set_xlabel(xlabel)
             ax_msfl_lls_lld.legend()
-
+        
         elif log_type == 'RAL':
             ax_ral = axes[i]
             
@@ -85,8 +88,13 @@ def convert_las_to_jpg(las_file, output_jpg):
                 ax_ral.plot(las['RAL4'], depth, label='RAL4')
             if 'RAL5' in las.keys():
                 ax_ral.plot(las['RAL5'], depth, label='RAL5')
-            
-            ax_ral.set_xlabel('RAL1, RAL2, RAL3, RAL4, RAL5')
+
+            xlabel = ', '.join([f'{log} ({unit})' if unit else log for log, unit in [('RAL1', next((curve.unit for curve in las.curves if curve.mnemonic == 'RAL1'), '')),
+                                                                                     ('RAL2', next((curve.unit for curve in las.curves if curve.mnemonic == 'RAL2'), '')),
+                                                                                     ('RAL3', next((curve.unit for curve in las.curves if curve.mnemonic == 'RAL3'), '')),
+                                                                                     ('RAL3', next((curve.unit for curve in las.curves if curve.mnemonic == 'RAL4'), '')),
+                                                                                     ('RAL3', next((curve.unit for curve in las.curves if curve.mnemonic == 'RAL5'), '')),] if log in las.keys()])
+            ax_ral.set_xlabel(xlabel)
             ax_ral.legend()
 
         elif log_type == 'NPHI_RHOB':
@@ -94,22 +102,28 @@ def convert_las_to_jpg(las_file, output_jpg):
             ax_rhob = ax_nphi.twiny()
             
             if 'NPHI' in las.keys():
+                unit_nphi = next((curve.unit for curve in las.curves if curve.mnemonic == 'NPHI'), '')
+                xlabel_nphi = f'NPHI ({unit_nphi})' if unit_nphi else 'NPHI'
                 ax_nphi.plot(las['NPHI'], depth, 'r', label='NPHI')
-                ax_nphi.set_xlabel('NPHI')
+                ax_nphi.set_xlabel(xlabel_nphi)
                 ax_nphi.legend(loc='upper left')
                 ax_nphi.set_xlim(max(las['NPHI']), min(las['NPHI']))  # Invert NPHI scale
             
             if 'RHOB' in las.keys():
+                unit_rhob = next((curve.unit for curve in las.curves if curve.mnemonic == 'RHOB'), '')
+                xlabel_rhob = f'RHOB ({unit_rhob})' if unit_rhob else 'RHOB'
                 ax_rhob.plot(las['RHOB'], depth, 'm', label='RHOB')
-                ax_rhob.set_xlabel('RHOB')
+                ax_rhob.set_xlabel(xlabel_rhob)
                 ax_rhob.legend(loc='upper right')
 
         elif log_type == 'DT':
             ax_dt = axes[i]
             
             if 'DT' in las.keys():
+                unit_dt = next((curve.unit for curve in las.curves if curve.mnemonic == 'DT'), '')
+                xlabel_dt = f'DT ({unit_dt})' if unit_dt else 'DT'
                 ax_dt.plot(las['DT'], depth, 'm', label='DT')
-                ax_dt.set_xlabel('DT')
+                ax_dt.set_xlabel(xlabel_dt)
                 ax_dt.legend()
                 ax_dt.set_xlim(max(las['DT']), min(las['DT']))  # Invert DT scale
 
@@ -123,16 +137,15 @@ def convert_las_to_jpg(las_file, output_jpg):
     # Add "Triple Combo" text below the plot
     plt.figtext(0.5, 0.01, "Triple Combo", ha="center", fontsize=12, fontweight='bold')
 
-    # Add the available keys (log curves) below the plot
-    available_keys_str = ', '.join(available_keys)  # Join all the available keys into a single string
+    # Prepare available keys and units string
     plt.figtext(0.5, -0.05, f"This is a preview of the LAS file with some basic logs. Actual LAS files contain a wider range of logs.", ha="center", fontsize=10)
-    plt.figtext(0.5, -0.07, f"Available Logs: {available_keys_str}", ha="center", fontsize=10)
+    available_keys_with_units = ', '.join([f"{key}" if unit else key for key, unit in available_keys])
+    # Add the available keys (log curves with units) below the plot
+    plt.figtext(0.5, -0.07, f"Available Logs: {available_keys_with_units}", ha="center", fontsize=10)
 
-    # Adjust layout and save the plot as a JPEG
-    plt.tight_layout(rect=[0, 0.06, 1, 1])  # Adjust the rect to make space for the text
+    plt.tight_layout(rect=[0, 0.03, 1, 1])  # Adjust the rect to make space for the text
     plt.savefig(output_jpg, format='jpeg', bbox_inches='tight')
     plt.close(fig)
-
 
 
 def convert_sgy_to_jpg(sgy_file, output_jpg, sampling_interval=0.004):
